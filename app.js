@@ -120,25 +120,25 @@ function renderChart(bulletins) {
   const grid = [0, 0.5, 1].map((ratio) => {
     const gy = pad.t + ratio * (height - pad.t - pad.b)
     const label = new Date(minT + range * (1 - ratio)).toISOString().slice(0, 7)
-    return `<line x1="${pad.l}" y1="${gy}" x2="${width - pad.r}" y2="${gy}" stroke="#263241" stroke-width="1" />
-      <text x="${pad.l - 8}" y="${gy + 4}" fill="#90a0b5" font-size="10" text-anchor="end">${label}</text>`
+    return `<line x1="${pad.l}" y1="${gy}" x2="${width - pad.r}" y2="${gy}" stroke="var(--chart-grid)" stroke-width="1" />
+      <text x="${pad.l - 8}" y="${gy + 4}" fill="var(--chart-label)" font-size="10" text-anchor="end">${label}</text>`
   }).join('')
 
   const labels = [0, Math.floor((bulletins.length - 1) / 2), bulletins.length - 1]
-    .map((index) => `<text x="${x(index)}" y="${height - 8}" fill="#90a0b5" font-size="10" text-anchor="middle">${fmtMonth(bulletins[index].month)}</text>`)
+    .map((index) => `<text x="${x(index)}" y="${height - 8}" fill="var(--chart-label)" font-size="10" text-anchor="middle">${fmtMonth(bulletins[index].month)}</text>`)
     .join('')
 
   const line = (points, color) => {
     if (!points.length) return ''
     const coords = points.map((p) => `${x(p.index)},${y(p.value)}`).join(' ')
-    const circles = points.map((p) => `<circle cx="${x(p.index)}" cy="${y(p.value)}" r="3.5" fill="${color}" stroke="#0b0f14" stroke-width="1.5"><title>${fmtMonth(bulletins[p.index].month)} · ${fmtDate(p.value)}</title></circle>`).join('')
+    const circles = points.map((p) => `<circle cx="${x(p.index)}" cy="${y(p.value)}" r="3.5" fill="${color}" stroke="var(--panel)" stroke-width="1.5"><title>${fmtMonth(bulletins[p.index].month)} · ${fmtDate(p.value)}</title></circle>`).join('')
     return `<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />${circles}`
   }
 
   $('chart').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="EB-2 中国排期走势图">
     ${grid}
-    ${line(pointsA, '#6ea8ff')}
-    ${line(pointsB, '#45d6c3')}
+    ${line(pointsA, 'var(--accent)')}
+    ${line(pointsB, 'var(--accent-2)')}
     ${labels}
   </svg>`
 }

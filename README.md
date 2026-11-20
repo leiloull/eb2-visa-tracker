@@ -21,7 +21,11 @@
 │   ├── predictor.js      # 全期趋势预测算法
 │   ├── cloud.js          # 云数据库客户端与读写封装
 │   └── scrape-cli.js     # 命令行抓取工具
-├── scripts/sync-web.mjs  # 把前端三件套同步到 www/
+├── assets/
+│   └── icon-source.png   # 品牌源图标（白底 + 绿色上升箭头 #12B866）
+├── scripts/
+│   ├── sync-web.mjs      # 把前端三件套 + 图标同步到 www/
+│   └── generate-icons.py # 由源图标生成全平台 icon / splash（需 Pillow）
 ├── www/                  # Capacitor 打包用的静态资源（自动生成）
 ├── android/              # Android 原生工程（Capacitor 生成）
 ├── ios/                  # iOS 原生工程（Capacitor 生成）
@@ -184,6 +188,21 @@ keytool -genkeypair -v -storetype PKCS12 -keystore eb2-release.keystore \
 > **务必自行保管 keystore 文件**：丢失后无法用同一签名更新应用。它已被 `.gitignore` 排除，不会进仓库。
 
 上传 App Store / Google Play 前，请自行完成各平台的开发者账号、隐私政策与审核配置；本项目不含这些账号凭据。
+
+## 品牌与设计
+
+App 图标与网页前端共用一套设计语言：**白底 + 主绿 `#12B866` + 圆润粗线条的上升箭头**（寓意排期向前）。
+
+- 源图标：`assets/icon-source.png`（1024×1024）
+- 全平台图标 / 启动屏由脚本生成（Android 各密度 mipmap、adaptive foreground、iOS AppIcon、两端 splash）：
+
+```bash
+pip install pillow           # 首次安装依赖
+python scripts/generate-icons.py
+```
+
+- 网页主题色集中在 `styles.css` 顶部的 CSS 变量（`--accent` 等），图表配色在 `app.js` 中引用这些变量，改一处即可全局生效。
+- 更换品牌图标时：替换 `assets/icon-source.png` → 运行生成脚本 → `npm run cap:sync` → 重新构建 App。
 
 ## 免责声明
 
