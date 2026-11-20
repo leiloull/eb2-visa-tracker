@@ -37,7 +37,7 @@ Thumbs.db
 .idea/
 .vscode/
 
-# ===== 云服务本地清单 =====
+# ===== 云服务本地清单 & 工作区记忆（非项目代码） =====
 .wbapp_*.genie
 .wbapp_*.json
-.workbuddy/applications.yaml
+.workbuddy/
