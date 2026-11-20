@@ -34,7 +34,8 @@ definitions:
 
     - &sync_web
       name: Sync web assets into native projects
-      script: npx cap sync
+      # www/ 被 .gitignore 排除，CI 上不存在；cap:sync 会先跑 sync:web 生成 www/ 再 cap sync
+      script: npm run cap:sync
 
   artifacts:
     - &android_artifacts
