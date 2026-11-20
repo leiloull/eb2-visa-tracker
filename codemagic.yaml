@@ -55,7 +55,7 @@ workflows:
       - *set_android_sdk
       - *sync_web
       - name: Build debug APK
-        script: cd android && ./gradlew assembleDebug
+        script: cd android && bash ./gradlew assembleDebug
     artifacts: *android_artifacts
 
   # ---------- 2. Android Release：正式签名 APK / AAB ----------
@@ -84,7 +84,7 @@ workflows:
           EB2_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
           EOF
       - name: Build signed release
-        script: cd android && ./gradlew assembleRelease bundleRelease
+        script: cd android && bash ./gradlew assembleRelease bundleRelease
     artifacts: *android_artifacts
 
   # ---------- 3. iOS App Store IPA：必须 macOS + Apple 签名凭据 ----------
