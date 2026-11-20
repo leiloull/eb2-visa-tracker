@@ -5,11 +5,18 @@
 # App ID: com.workbuddy.eb2tracker / 名称: EB2排期追踪
 #
 # 三个工作流:
-#   android-debug     —— Linux 构建机，无需签名，直接出可安装 debug APK（推荐先跑这个验证）
+#   android-debug     —— Linux 构建机，零凭据，直接出可安装 debug APK（推荐先跑这个验证）
 #   android-release   —— 需签名凭据，出正式 APK + AAB
 #   ios-app-store     —— macOS 构建机 + Apple 签名，出 IPA
 #
-# 凭据在 Codemagic 项目设置里建环境变量组 "eb2-app-credentials"（见 README）。
+# 构建产物到 Codemagic 构建详情页的 Artifacts 标签下载。
+# 说明：本配置刻意不启用 publishing.email，避免未设置 CM_BUILD_EMAIL 时
+#       触发 "recipients -> 0 none is not an allowed value" 校验错误。
+#       如需邮件通知，可自行在单个 workflow 末尾追加：
+#         publishing:
+#           email:
+#             recipients:
+#               - your@email.com   # 写固定邮箱，不要用未定义的环境变量
 
 definitions:
   scripts:
@@ -38,8 +45,6 @@ workflows:
     max_build_duration: 60
     environment:
       node: 22
-      groups:
-        - eb2-app-credentials
     scripts:
       - *install_deps
       - *set_android_sdk
@@ -47,12 +52,9 @@ workflows:
       - name: Build debug APK
         script: cd android && ./gradlew assembleDebug
     artifacts: *android_artifacts
-    publishing:
-      email:
-        recipients:
-          - $CM_BUILD_EMAIL
 
   # ---------- 2. Android Release：正式签名 APK / AAB ----------
+  #  需要在 Codemagic 建环境变量组 "eb2-app-credentials"，见 README。
   #  keystore 通过环境变量组的 base64 注入，build.gradle 已支持 EB2_UPLOAD_* 变量
   android-release:
     name: Android Release (signed)
@@ -79,10 +81,6 @@ workflows:
       - name: Build signed release
         script: cd android && ./gradlew assembleRelease bundleRelease
     artifacts: *android_artifacts
-    publishing:
-      email:
-        recipients:
-          - $CM_BUILD_EMAIL
 
   # ---------- 3. iOS App Store IPA：必须 macOS + Apple 签名凭据 ----------
   ios-app-store:
@@ -121,8 +119,3 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-    publishing:
-      # 上传到 App Store Connect 需额外配置 APP_STORE_CONNECT_* 凭据，见 README
-      email:
-        recipients:
-          - $CM_BUILD_EMAIL

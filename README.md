@@ -137,28 +137,27 @@ npm run open:ios       # 需 macOS + Xcode + CocoaPods
 
 1. 用 GitHub 账号登录 [Codemagic](https://codemagic.io/)，点 **Add application**。
 2. 选择 GitHub，授权后选中仓库 `leiloull/eb2-visa-tracker`。
-3. 项目类型选 **Capacitor / Ionic**（或 Other），点 Finish。
+3. 项目类型下拉里若有 **Ionic / Ionic Capacitor** 就选它；没有就直接选 **Other**（构建完全由 `codemagic.yaml` 驱动，这里选什么都不影响结果），点 Finish。
 4. 进入应用后，在顶部 **Configuration** 处选择分支 `main`，点 **Check for configuration file**，让 Codemagic 读取 `codemagic.yaml`。确认能列出三个工作流（见下）。
 
-#### 第 2 步：创建环境变量组
+#### 第 2 步：创建环境变量组（仅正式签名包需要）
 
-在应用设置（或团队设置）里创建环境变量组，命名 **`eb2-app-credentials`**：
+`android-debug` 是零凭据工作流，**无需创建任何环境变量组**。只有要打正式签名包时，才在应用设置（或团队设置）里创建环境变量组 **`eb2-app-credentials`**：
 
 | 变量 | 用途 | 必填 |
 |---|---|---|
-| `CM_BUILD_EMAIL` | 接收构建产物下载链接的邮箱 | 建议 |
 | `ANDROID_KEYSTORE_FILE` | keystore 文件的 base64 文本 | 仅 release |
 | `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 | 仅 release |
 | `ANDROID_KEY_ALIAS` | 密钥别名 | 仅 release |
 | `ANDROID_KEY_PASSWORD` | 密钥密码 | 仅 release |
 
-> 第一次只为验证链路，**只需 `CM_BUILD_EMAIL`**，直接跑 `android-debug` 即可，无需任何签名变量。
+> 注意：配置里没有启用邮件通知（避免未设置邮箱变量时构建校验失败）。构建产物到构建详情页的 **Artifacts** 标签下载。
 
 #### 第 3 步：运行构建
 
 在 Codemagic 应用页右上角点 **Start new build**，选择工作流：
 
-- **`android-debug`** ← 先跑这个。Linux 构建机，无需签名，产出可安装的 **debug APK**。构建成功后邮件里有下载链接，传到安卓手机即可安装（需允许安装未知来源应用）。
+- **`android-debug`** ← 先跑这个。Linux 构建机，无需签名、无需任何环境变量，产出可安装的 **debug APK**。构建成功后点进该次构建，在 **Artifacts** 标签下载 APK，传到安卓手机即可安装（需允许安装未知来源应用）。
 - **`android-release`**：配好 4 个签名变量后运行，产出签名 **APK + AAB**（AAB 用于上架 Google Play）。
 - **`ios-app-store`**：macOS 构建机，产出 **IPA**。需先完成下面的 iOS 签名配置。
 
