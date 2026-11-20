@@ -5,9 +5,13 @@
 # App ID: com.workbuddy.eb2tracker / 名称: EB2排期追踪
 #
 # 三个工作流:
-#   android-debug     —— Linux 构建机，零凭据，直接出可安装 debug APK（推荐先跑这个验证）
+#   android-debug     —— 零凭据，直接出可安装 debug APK（推荐先跑这个验证）
 #   android-release   —— 需签名凭据，出正式 APK + AAB
 #   ios-app-store     —— macOS 构建机 + Apple 签名，出 IPA
+#
+# 实例类型统一用 mac_mini_m2：Codemagic 免费个人计划每月有 500 分钟 M2 免费额度，
+# 而 linux_x2 / linux_x4 / mac_mini_m4 / windows_x2 都需开启付费 billing 才能用。
+# Android 在 macOS 上构建完全可行（Capacitor 官方范例即如此）。
 #
 # 构建产物到 Codemagic 构建详情页的 Artifacts 标签下载。
 # 说明：本配置刻意不启用 publishing.email，避免未设置 CM_BUILD_EMAIL 时
@@ -41,7 +45,7 @@ workflows:
   # ---------- 1. Android Debug APK：零凭据，先跑这个验证整条链路 ----------
   android-debug:
     name: Android Debug APK
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       node: 22
@@ -58,7 +62,7 @@ workflows:
   #  keystore 通过环境变量组的 base64 注入，build.gradle 已支持 EB2_UPLOAD_* 变量
   android-release:
     name: Android Release (signed)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       node: 22

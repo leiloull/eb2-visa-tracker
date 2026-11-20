@@ -157,7 +157,8 @@ npm run open:ios       # 需 macOS + Xcode + CocoaPods
 
 在 Codemagic 应用页右上角点 **Start new build**，选择工作流：
 
-- **`android-debug`** ← 先跑这个。Linux 构建机，无需签名、无需任何环境变量，产出可安装的 **debug APK**。构建成功后点进该次构建，在 **Artifacts** 标签下载 APK，传到安卓手机即可安装（需允许安装未知来源应用）。
+- **`android-debug`** ← 先跑这个。macOS M2 构建机，无需签名、无需任何环境变量，产出可安装的 **debug APK**。构建成功后点进该次构建，在 **Artifacts** 标签下载 APK，传到安卓手机即可安装（需允许安装未知来源应用）。
+  - 说明：三个工作流统一用 `mac_mini_m2` 实例，因为 Codemagic 免费个人计划每月有 500 分钟 M2 免费额度；`linux_x2` 等 Linux 实例需开启付费 billing 才能使用。Android 构建在 macOS 上完全可行。
 - **`android-release`**：配好 4 个签名变量后运行，产出签名 **APK + AAB**（AAB 用于上架 Google Play）。
 - **`ios-app-store`**：macOS 构建机，产出 **IPA**。需先完成下面的 iOS 签名配置。
 
