@@ -12,6 +12,7 @@
 # 实例类型统一用 mac_mini_m2：Codemagic 免费个人计划每月有 500 分钟 M2 免费额度，
 # 而 linux_x2 / linux_x4 / mac_mini_m4 / windows_x2 都需开启付费 billing 才能用。
 # Android 在 macOS 上构建完全可行（Capacitor 官方范例即如此）。
+# Capacitor 8 需 JDK 21（构建机默认 17，会报 invalid source release: 21），故 environment 里指定 java: 21。
 #
 # 构建产物到 Codemagic 构建详情页的 Artifacts 标签下载。
 # 说明：本配置刻意不启用 publishing.email，避免未设置 CM_BUILD_EMAIL 时
@@ -50,12 +51,16 @@ workflows:
     max_build_duration: 60
     environment:
       node: 22
+      java: 21
     scripts:
       - *install_deps
       - *set_android_sdk
       - *sync_web
       - name: Build debug APK
-        script: cd android && bash ./gradlew assembleDebug
+        script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          echo "JAVA_HOME=$JAVA_HOME"
+          cd android && bash ./gradlew assembleDebug
     artifacts: *android_artifacts
 
   # ---------- 2. Android Release：正式签名 APK / AAB ----------
@@ -67,6 +72,7 @@ workflows:
     max_build_duration: 60
     environment:
       node: 22
+      java: 21
       groups:
         - eb2-app-credentials
     scripts:
@@ -84,7 +90,10 @@ workflows:
           EB2_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
           EOF
       - name: Build signed release
-        script: cd android && bash ./gradlew assembleRelease bundleRelease
+        script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          echo "JAVA_HOME=$JAVA_HOME"
+          cd android && bash ./gradlew assembleRelease bundleRelease
     artifacts: *android_artifacts
 
   # ---------- 3. iOS App Store IPA：必须 macOS + Apple 签名凭据 ----------
