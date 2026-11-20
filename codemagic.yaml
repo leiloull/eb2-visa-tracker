@@ -1,11 +1,15 @@
-# Codemagic 云端构建配置 —— EB2排期追踪 (Capacitor)
-# 文档: https://docs.codemagic.io/yaml-quick-start/building-a-capacitor-app/
+# Codemagic 云端构建配置 —— EB2排期追踪 (Capacitor 8)
+# 参考文档: https://docs.codemagic.io/yaml-quick-start/building-an-ionic-app/
 #
-# 使用前请先在 Codemagic 项目设置里创建环境变量组 "eb2-app-credentials"，
-# 至少填入 ANDROID_KEYSTORE_FILE / ANDROID_KEYSTORE_PASSWORD /
-# ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD（见 README 的「云端出包」章节）。
-# iOS 如需真正签名出 IPA，还需在 Codemagic 上传 Distribution 证书与
-# App Store / Ad Hoc provisioning profile，并把下方 signing 段落取消注释。
+# 仓库: https://github.com/leiloull/eb2-visa-tracker
+# App ID: com.workbuddy.eb2tracker / 名称: EB2排期追踪
+#
+# 三个工作流:
+#   android-debug     —— Linux 构建机，无需签名，直接出可安装 debug APK（推荐先跑这个验证）
+#   android-release   —— 需签名凭据，出正式 APK + AAB
+#   ios-app-store     —— macOS 构建机 + Apple 签名，出 IPA
+#
+# 凭据在 Codemagic 项目设置里建环境变量组 "eb2-app-credentials"（见 README）。
 
 definitions:
   scripts:
@@ -13,9 +17,13 @@ definitions:
       name: Install npm dependencies
       script: npm ci
 
+    - &set_android_sdk
+      name: Set Android SDK location
+      script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+
     - &sync_web
       name: Sync web assets into native projects
-      script: npm run cap:sync
+      script: npx cap sync
 
   artifacts:
     - &android_artifacts
@@ -23,7 +31,7 @@ definitions:
       - android/app/build/outputs/**/*.aab
 
 workflows:
-  # ---------- Android：Linux 构建机即可，无需签名凭据也能出 debug APK ----------
+  # ---------- 1. Android Debug APK：零凭据，先跑这个验证整条链路 ----------
   android-debug:
     name: Android Debug APK
     instance_type: linux_x2
@@ -34,6 +42,7 @@ workflows:
         - eb2-app-credentials
     scripts:
       - *install_deps
+      - *set_android_sdk
       - *sync_web
       - name: Build debug APK
         script: cd android && ./gradlew assembleDebug
@@ -43,7 +52,8 @@ workflows:
         recipients:
           - $CM_BUILD_EMAIL
 
-  # ---------- Android：正式签名 APK / AAB ----------
+  # ---------- 2. Android Release：正式签名 APK / AAB ----------
+  #  keystore 通过环境变量组的 base64 注入，build.gradle 已支持 EB2_UPLOAD_* 变量
   android-release:
     name: Android Release (signed)
     instance_type: linux_x2
@@ -54,6 +64,7 @@ workflows:
         - eb2-app-credentials
     scripts:
       - *install_deps
+      - *set_android_sdk
       - *sync_web
       - name: Decode keystore
         script: echo "$ANDROID_KEYSTORE_FILE" | base64 --decode > android/app/eb2-release.keystore
@@ -68,8 +79,12 @@ workflows:
       - name: Build signed release
         script: cd android && ./gradlew assembleRelease bundleRelease
     artifacts: *android_artifacts
+    publishing:
+      email:
+        recipients:
+          - $CM_BUILD_EMAIL
 
-  # ---------- iOS：必须 macOS 构建机 ----------
+  # ---------- 3. iOS App Store IPA：必须 macOS + Apple 签名凭据 ----------
   ios-app-store:
     name: iOS App Store IPA
     instance_type: mac_mini_m2
@@ -78,6 +93,9 @@ workflows:
       node: 22
       groups:
         - eb2-app-credentials
+      vars:
+        XCODE_WORKSPACE: App.xcworkspace
+        XCODE_SCHEME: App
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.workbuddy.eb2tracker
@@ -86,7 +104,7 @@ workflows:
       - *sync_web
       - name: Install CocoaPods
         script: cd ios/App && pod install --repo-update
-      - name: Set up signing
+      - name: Set up code signing
         script: |
           keychain initialize
           keychain add-certificates
@@ -95,14 +113,16 @@ workflows:
         script: xcode-project increment-build-number --build-dir ios/App
       - name: Build IPA
         script: |
+          cd ios/App
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
-      - ios/App/App.xcodeproj/project.pbxproj
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
     publishing:
-      # 上传到 App Store Connect 需要额外配置 APP_STORE_CONNECT_* 凭据，见 README
+      # 上传到 App Store Connect 需额外配置 APP_STORE_CONNECT_* 凭据，见 README
       email:
         recipients:
           - $CM_BUILD_EMAIL

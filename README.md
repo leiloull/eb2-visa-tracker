@@ -131,22 +131,57 @@ npm run open:ios       # 需 macOS + Xcode + CocoaPods
 
 ### Codemagic 云端出包（推荐）
 
-1. 把项目推送到 GitHub / GitLab，在 [Codemagic](https://codemagic.io/) 用该仓库创建应用。
-2. 在 Codemagic 项目设置里创建环境变量组 `eb2-app-credentials`，加入：
-   - `CM_BUILD_EMAIL`：接收构建产物的邮箱
-   - Android 正式签名（可选，debug 包不需要）：`ANDROID_KEYSTORE_FILE`（keystore 的 base64）、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`
-3. `codemagic.yaml` 已定义三个工作流，在 Codemagic 界面选择运行：
-   - `android-debug`：Linux 构建机，无需签名凭据，直接产出可安装的 **debug APK**
-   - `android-release`：需要上面 4 个签名变量，产出签名 **APK + AAB**
-   - `ios-app-store`：macOS 构建机，产出 **IPA**
-4. iOS 真正签名还需在 Codemagic 上传 Apple Distribution 证书与 provisioning profile（Bundle ID 填 `com.workbuddy.eb2tracker`），并在工作流的 `environment.ios_signing` 中关联；仅生成未签名模拟器包则可跳过。
+代码仓库：<https://github.com/leiloull/eb2-visa-tracker>。`codemagic.yaml` 已在仓库根目录，Codemagic 会自动识别。
 
-生成 keystore 的示例命令（本地执行一次，再按上面转成 base64）：
+#### 第 1 步：添加应用
+
+1. 用 GitHub 账号登录 [Codemagic](https://codemagic.io/)，点 **Add application**。
+2. 选择 GitHub，授权后选中仓库 `leiloull/eb2-visa-tracker`。
+3. 项目类型选 **Capacitor / Ionic**（或 Other），点 Finish。
+4. 进入应用后，在顶部 **Configuration** 处选择分支 `main`，点 **Check for configuration file**，让 Codemagic 读取 `codemagic.yaml`。确认能列出三个工作流（见下）。
+
+#### 第 2 步：创建环境变量组
+
+在应用设置（或团队设置）里创建环境变量组，命名 **`eb2-app-credentials`**：
+
+| 变量 | 用途 | 必填 |
+|---|---|---|
+| `CM_BUILD_EMAIL` | 接收构建产物下载链接的邮箱 | 建议 |
+| `ANDROID_KEYSTORE_FILE` | keystore 文件的 base64 文本 | 仅 release |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 | 仅 release |
+| `ANDROID_KEY_ALIAS` | 密钥别名 | 仅 release |
+| `ANDROID_KEY_PASSWORD` | 密钥密码 | 仅 release |
+
+> 第一次只为验证链路，**只需 `CM_BUILD_EMAIL`**，直接跑 `android-debug` 即可，无需任何签名变量。
+
+#### 第 3 步：运行构建
+
+在 Codemagic 应用页右上角点 **Start new build**，选择工作流：
+
+- **`android-debug`** ← 先跑这个。Linux 构建机，无需签名，产出可安装的 **debug APK**。构建成功后邮件里有下载链接，传到安卓手机即可安装（需允许安装未知来源应用）。
+- **`android-release`**：配好 4 个签名变量后运行，产出签名 **APK + AAB**（AAB 用于上架 Google Play）。
+- **`ios-app-store`**：macOS 构建机，产出 **IPA**。需先完成下面的 iOS 签名配置。
+
+#### iOS 签名配置（仅 iOS 需要）
+
+1. 需要付费的 **Apple Developer Program** 账号。
+2. 在 App Store Connect 用 Bundle ID `com.workbuddy.eb2tracker` 创建一个 App 记录（用于接收构建）。
+3. 在 Codemagic 创建 App Store Connect API 密钥（Users and Access → Integrations → App Store Connect API，角色 App Manager），下载 `.p8` 密钥、记下 Issuer ID / Key ID。
+4. 在 Codemagic 的 **Team integrations → Developer Portal** 连接该 API 密钥，并把 Apple Distribution 证书与 App Store provisioning profile 加入代码签名身份（Codemagic 会自动匹配 `com.workbuddy.eb2tracker`）。
+5. `codemagic.yaml` 的 `ios-app-store` 工作流已配置 `ios_signing` + `xcode-project use-profiles`，会自动完成签名。
+
+#### 生成 Android 签名 keystore（仅 release 需要）
+
+本地执行一次（需 JDK 的 `keytool`），生成后把文件转成 base64 填入 `ANDROID_KEYSTORE_FILE`：
 
 ```bash
 keytool -genkeypair -v -storetype PKCS12 -keystore eb2-release.keystore \
   -alias eb2 -keyalg RSA -keysize 2048 -validity 10000
+# macOS: base64 -i eb2-release.keystore | pbcopy
+# Linux/Git Bash: base64 -w0 eb2-release.keystore
 ```
+
+> **务必自行保管 keystore 文件**：丢失后无法用同一签名更新应用。它已被 `.gitignore` 排除，不会进仓库。
 
 上传 App Store / Google Play 前，请自行完成各平台的开发者账号、隐私政策与审核配置；本项目不含这些账号凭据。
 
