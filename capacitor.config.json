@@ -1,0 +1,16 @@
+{
+  "appId": "com.workbuddy.eb2tracker",
+  "appName": "EB2排期追踪",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}

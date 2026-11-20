@@ -1,0 +1,34 @@
+{
+  "name": "eb2-visa-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "EB-2 中国大陆绿卡排期自动抓取与预测全栈项目",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "scrape": "node server/scrape-cli.js",
+    "sync:web": "node scripts/sync-web.mjs",
+    "cap:sync": "npm run sync:web && cap sync",
+    "ios:add": "cap add ios",
+    "android:add": "cap add android",
+    "build:android": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "@tencent-ai/workbuddy-cloud-sdk": "dev",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3"
+  }
+}

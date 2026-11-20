@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EB2排期追踪</string>
+    <string name="title_activity_main">EB2排期追踪</string>
+    <string name="package_name">com.workbuddy.eb2tracker</string>
+    <string name="custom_url_scheme">com.workbuddy.eb2tracker</string>
+</resources>

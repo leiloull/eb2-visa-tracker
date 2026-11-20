@@ -1,0 +1,108 @@
+# Codemagic 云端构建配置 —— EB2排期追踪 (Capacitor)
+# 文档: https://docs.codemagic.io/yaml-quick-start/building-a-capacitor-app/
+#
+# 使用前请先在 Codemagic 项目设置里创建环境变量组 "eb2-app-credentials"，
+# 至少填入 ANDROID_KEYSTORE_FILE / ANDROID_KEYSTORE_PASSWORD /
+# ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD（见 README 的「云端出包」章节）。
+# iOS 如需真正签名出 IPA，还需在 Codemagic 上传 Distribution 证书与
+# App Store / Ad Hoc provisioning profile，并把下方 signing 段落取消注释。
+
+definitions:
+  scripts:
+    - &install_deps
+      name: Install npm dependencies
+      script: npm ci
+
+    - &sync_web
+      name: Sync web assets into native projects
+      script: npm run cap:sync
+
+  artifacts:
+    - &android_artifacts
+      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/*.aab
+
+workflows:
+  # ---------- Android：Linux 构建机即可，无需签名凭据也能出 debug APK ----------
+  android-debug:
+    name: Android Debug APK
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      groups:
+        - eb2-app-credentials
+    scripts:
+      - *install_deps
+      - *sync_web
+      - name: Build debug APK
+        script: cd android && ./gradlew assembleDebug
+    artifacts: *android_artifacts
+    publishing:
+      email:
+        recipients:
+          - $CM_BUILD_EMAIL
+
+  # ---------- Android：正式签名 APK / AAB ----------
+  android-release:
+    name: Android Release (signed)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      node: 22
+      groups:
+        - eb2-app-credentials
+    scripts:
+      - *install_deps
+      - *sync_web
+      - name: Decode keystore
+        script: echo "$ANDROID_KEYSTORE_FILE" | base64 --decode > android/app/eb2-release.keystore
+      - name: Configure signing
+        script: |
+          cat >> android/gradle.properties <<EOF
+          EB2_UPLOAD_STORE_FILE=eb2-release.keystore
+          EB2_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          EB2_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          EB2_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          EOF
+      - name: Build signed release
+        script: cd android && ./gradlew assembleRelease bundleRelease
+    artifacts: *android_artifacts
+
+  # ---------- iOS：必须 macOS 构建机 ----------
+  ios-app-store:
+    name: iOS App Store IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      node: 22
+      groups:
+        - eb2-app-credentials
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.workbuddy.eb2tracker
+    scripts:
+      - *install_deps
+      - *sync_web
+      - name: Install CocoaPods
+        script: cd ios/App && pod install --repo-update
+      - name: Set up signing
+        script: |
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Increment build number
+        script: xcode-project increment-build-number --build-dir ios/App
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - ios/App/App.xcodeproj/project.pbxproj
+    publishing:
+      # 上传到 App Store Connect 需要额外配置 APP_STORE_CONNECT_* 凭据，见 README
+      email:
+        recipients:
+          - $CM_BUILD_EMAIL

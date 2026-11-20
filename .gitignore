@@ -1,0 +1,43 @@
+# ===== 敏感凭据：绝不提交 =====
+.env
+.env.local
+.env.*.local
+*.keystore
+*.jks
+*.p12
+*.p8
+*.mobileprovision
+GoogleService-Info.plist
+google-services.json
+
+# ===== 依赖与构建产物 =====
+node_modules/
+www/
+build/
+dist/
+*.log
+npm-debug.log*
+
+# ===== Capacitor 原生构建产物（保留源码，忽略生成物） =====
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+android/.idea/
+ios/App/Pods/
+ios/App/DerivedData/
+ios/App/App/public/
+ios/App/build/
+
+# ===== 系统与编辑器 =====
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ===== 云服务本地清单 =====
+.wbapp_*.genie
+.wbapp_*.json
+.workbuddy/applications.yaml
